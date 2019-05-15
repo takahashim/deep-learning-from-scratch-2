@@ -1,4 +1,5 @@
 require 'numo/narray'
+require 'numo/linalg/autoloader'
 
 module Common
   module Util
@@ -132,6 +133,32 @@ module Common
       return m
     end
     module_function :ppmi
+
+    # https://yoshoku.hatenablog.com/entry/2019/01/06/193347
+    # a: 入力行列
+    # k: 大きい方から得る特異値・特異ベクトルの数
+    def svd(a, k)
+      # 入力行列の大きさを得る。
+      n_rows, = a.shape
+
+      # 対称行列を計算する。
+      b = a.dot(a.transpose)
+
+      # 対称行列を固有値の範囲を指定して固有値分解する。
+      # Numo::Linalg.eighメソッドでは固有値は昇順に並ぶ。
+      # 大きい方から得られるように値の範囲の指定に注意する。
+      vals_range = (n_rows - k)...n_rows
+      evals, evecs =  Numo::Linalg.eigh(b, vals_range: vals_range)
+
+      # 固有値・固有ベクトルから特異値・左右の特異ベクトルを求める。
+      # reverseメソッドで降順にしている。
+      s = Numo::NMath.sqrt(evals.reverse.dup)
+      u = evecs.reverse(1).dup
+      vt = (1.0 / s).diag.dot(u.transpose).dot(a)
+
+      [s, u, vt]
+    end
+    module_function :svd
   end
 end
 
